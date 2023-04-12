@@ -5769,8 +5769,8 @@ if ($action == 'create') {
 		$filename = dol_sanitizeFileName($object->ref);
 		$filedir = $conf->facture->multidir_output[$object->entity].'/'.dol_sanitizeFileName($object->ref);
 		$urlsource = $_SERVER['PHP_SELF'].'?facid='.$object->id;
-		$genallowed = $usercanread;
-		$delallowed = $usercancreate;
+		$genallowed = (getDolGlobalInt('INVOICE_DISALLOW_GENERATION_WHEN_VALID') == 0 ? $usercanread : $object->statut == Facture::STATUS_DRAFT);
+		$delallowed = (getDolGlobalInt('INVOICE_DISALLOW_GENERATION_WHEN_VALID') == 0 ? $usercancreate : $object->statut == Facture::STATUS_DRAFT);
 
 		print $formfile->showdocuments(
 			'facture',
