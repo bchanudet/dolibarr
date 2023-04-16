@@ -358,11 +358,12 @@ class Conf
 								if ($modulename == 'supplierproposal') {
 									$modulename = 'supplier_proposal';
 								}
+								$this->modules[$modulename] = $modulename; // Add this module in list of enabled modules
+								// deprecated in php 8.2
 								if (!isset($this->$modulename) || !is_object($this->$modulename)) {
 									$this->$modulename = new stdClass();
 								}
 								$this->$modulename->enabled = true;
-								$this->modules[] = $modulename; // Add this module in list of enabled modules
 							}
 						}
 					}
@@ -965,6 +966,10 @@ class Conf
 
 			if (!isset($this->global->MAIN_MAIL_ADD_INLINE_IMAGES_IF_DATA)) {
 				$this->global->MAIN_MAIL_ADD_INLINE_IMAGES_IF_DATA = 1;
+			}
+
+			if (!isset($this->global->MAIL_SMTP_USE_FROM_FOR_HELO)) {
+				$this->global->MAIL_SMTP_USE_FROM_FOR_HELO = 2;
 			}
 
 			if (!defined('MAIN_ANTIVIRUS_BYPASS_COMMAND_AND_PARAM')) {

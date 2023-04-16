@@ -473,7 +473,7 @@ if ($search_project_contact > 0) {
 $reshook = $hookmanager->executeHooks('printFieldListFrom', $parameters, $object); // Note that $action and $object may have been modified by hook
 $sql .= $hookmanager->resPrint;
 
-$sql .= " WHERE p.entity IN (".getEntity('project').')';
+$sql .= " WHERE p.entity IN (".getEntity('project', (GETPOST('search_current_entity', 'int') ? 0 : 1)).')';
 if (empty($user->rights->projet->all->lire)) {
 	$sql .= " AND p.rowid IN (".$db->sanitize($projectsListId).")"; // public and assigned to, or restricted to company for external users
 }
@@ -1861,7 +1861,9 @@ while ($i < $imaxinloop) {
 			print '<td class="tdoverflowmax125" title="'.dol_escape_htmltag($obj->email_msgid).'">';
 			print dol_escape_htmltag($obj->email_msgid);
 			print '</td>';
-			if (!$i) $totalarray['nbfield']++;
+			if (!$i) {
+				$totalarray['nbfield']++;
+			}
 		}
 		// Import key
 		if (!empty($arrayfields['p.import_key']['checked'])) {

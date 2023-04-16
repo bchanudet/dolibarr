@@ -257,6 +257,12 @@ class User extends CommonObject
 	 */
 	public $clicktodial_poste;
 
+	/**
+	 * @var string 	0 by default, 1 if click to dial data were already loaded for this user
+	 */
+	public $clicktodial_loaded;
+
+
 	public $datelastlogin;
 	public $datepreviouslogin;
 	public $flagdelsessionsbefore;
@@ -834,6 +840,12 @@ class User extends CommonObject
 		$entity = (empty($entity) ? $conf->entity : $entity);
 
 		dol_syslog(get_class($this)."::addrights $rid, $allmodule, $allperms, $entity, $notrigger for user id=".$this->id);
+
+		if (empty($this->id)) {
+			$error++;
+			$this->error = 'Try to call addrights on an object user with an empty id';
+			return -1;
+		}
 
 		$error = 0;
 		$whereforadd = '';
