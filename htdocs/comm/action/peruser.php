@@ -515,7 +515,7 @@ $newcardbutton = '';
 if ($user->hasRight('agenda', 'myactions', 'create') || $user->hasRight('agenda', 'allactions', 'create')) {
 	$tmpforcreatebutton = dol_getdate(dol_now('tzuserrel'), true);
 
-	$newparam .= '&month='.urlencode(str_pad((string) $month, 2, "0", STR_PAD_LEFT)).'&year='.((int) $tmpforcreatebutton['year']);
+	$newparam .= 'month='.urlencode(str_pad((string) $month, 2, "0", STR_PAD_LEFT)).'&year='.((int) $tmpforcreatebutton['year']);
 	if ($begin_h !== '') {
 		$newparam .= '&begin_h='.((int) $begin_h);
 	}
@@ -531,7 +531,7 @@ if ($user->hasRight('agenda', 'myactions', 'create') || $user->hasRight('agenda'
 
 	$urltocreateaction = DOL_URL_ROOT.'/comm/action/card.php?action=create';
 	$urltocreateaction .= '&apyear='.$tmpforcreatebutton['year'].'&apmonth='.$tmpforcreatebutton['mon'].'&apday='.$tmpforcreatebutton['mday'].'&aphour='.$tmpforcreatebutton['hours'].'&apmin='.$tmpforcreatebutton['minutes'];
-	$urltocreateaction .= '&backtopage='.urlencode($_SERVER["PHP_SELF"] . $newparam);
+	$urltocreateaction .= '&backtopage='.urlencode($_SERVER["PHP_SELF"] . (preg_match('/\?/', $_SERVER["PHP_SELF"]) ? "&" : "?") . $newparam);
 
 	$newcardbutton .= dolGetButtonTitle($langs->trans("AddAction"), '', 'fa fa-plus-circle', $urltocreateaction);
 }
