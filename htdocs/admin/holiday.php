@@ -545,6 +545,21 @@ if ($conf->use_javascript_ajax) {
 print "</td>";
 print "</tr>";
 
+print '<tr class="oddeven">';
+print '<td>HOLIDAY_APPROVER_CANT_CHANGE <span class="opacitymedium">(#TOCHANGE)</span></td>';
+print '<td class="center">';
+if ($conf->use_javascript_ajax) {
+	print ajax_constantonoff('HOLIDAY_APPROVER_CANT_CHANGE', array(), null, 0, 0, 0, 2, 0, 1);
+} else {
+	if (getDolGlobalString('HOLIDAY_APPROVER_CANT_CHANGE')) {
+		print '<a href="'.$_SERVER['PHP_SELF'].'?action=set_other&token='.newToken().'&HOLIDAY_APPROVER_CANT_CHANGE=1">'.img_picto($langs->trans("Enabled"), 'on').'</a>';
+	} else {
+		print '<a href="'.$_SERVER['PHP_SELF'].'?action=set_other&token='.newToken().'&HOLIDAY_APPROVER_CANT_CHANGE=0">'.img_picto($langs->trans("Disabled"), 'off').'</a>';
+	}
+}
+print "</td>";
+print "</tr>";
+
 if (getDolGlobalInt('MAIN_FEATURES_LEVEL') >= 2) {
 	$substitutionarray = pdf_getSubstitutionArray($langs, array('objectamount'), null, 2);
 	$substitutionarray['__(AnyTranslationKey)__'] = $langs->trans("Translation");
