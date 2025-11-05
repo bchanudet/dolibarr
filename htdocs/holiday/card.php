@@ -202,6 +202,12 @@ if (empty($reshook)) {
 		$approverid = GETPOSTINT('valideur');
 		$description = trim(GETPOST('description', 'restricthtml'));
 
+		if (getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 1) {
+			$target = new User($db);
+			$target->fetch($fuserid);
+			$approverid = (empty($target->fk_user_holiday_validator) ? $target->fk_user : $target->fk_user_holiday_validator);
+		}
+
 		// Check that leave is for a user inside the hierarchy or advanced permission for all is set
 		if (!$permissiontoaddall) {
 			if (!getDolGlobalString('MAIN_USE_ADVANCED_PERMS')) {
@@ -316,7 +322,7 @@ if (empty($reshook)) {
 	}
 
 	// If this is an update and we are an approver, we can update to change the expected approver with another one (including himself)
-	if ($action == 'update' && GETPOSTISSET('savevalidator') && $permissiontoapprove) {
+	if ($action == 'update' && GETPOSTISSET('savevalidator') && $permissiontoapprove && getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 0) {
 		$object->fetch($id);
 
 		$object->oldcopy = dol_clone($object, 2);  // @phan-suppress-current-line PhanTypeMismatchProperty
@@ -377,6 +383,12 @@ if (empty($reshook)) {
 			if ($permissiontoadd) {
 				$approverid = GETPOSTINT('valideur');
 				// TODO Check this approver user id has the permission for approval
+
+				if (getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 1) {
+					$target = new User($db);
+					$target->fetch($fuserid);
+					$approverid = (empty($target->fk_user_holiday_validator) ? $target->fk_user : $target->fk_user_holiday_validator);
+				}
 
 				$description = trim(GETPOST('description', 'restricthtml'));
 
@@ -1213,14 +1225,22 @@ if ((empty($id) && empty($ref)) || $action == 'create' || $action == 'add') {
 			// Defined default approver (the forced approved of user or the supervisor if no forced value defined)
 			// Note: This use will be set only if the deinfed approvr has permission to approve so is inside include_users
 			$defaultselectuser = (empty($user->fk_user_holiday_validator) ? $user->fk_user : $user->fk_user_holiday_validator);
+
 			if (getDolGlobalString('HOLIDAY_DEFAULT_VALIDATOR')) {
 				$defaultselectuser = getDolGlobalString('HOLIDAY_DEFAULT_VALIDATOR'); // Can force default approver
 			}
 			if (GETPOSTINT('valideur') > 0) {
 				$defaultselectuser = GETPOSTINT('valideur');
 			}
-			$s = $form->select_dolusers($defaultselectuser, "valideur", 1, null, 0, $include_users, '', '0,'.$conf->entity, 0, 0, '', 0, '', 'minwidth200 maxwidth500');
-			print img_picto('', 'user', 'class="pictofixedwidth"').$form->textwithpicto($s, $langs->trans("AnyOtherInThisListCanValidate"));
+
+			if (getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 1 && $defaultselectuser != 0) {
+				$approveruser = new User($db);
+				$approveruser->fetch($defaultselectuser);
+				print $approveruser->getNomUrl(1);
+			} else {
+				$s = $form->select_dolusers($defaultselectuser, "valideur", 1, null, 0, $include_users, '', '0,'.$conf->entity, 0, 0, '', 0, '', 'minwidth200 maxwidth500');
+				print img_picto('', 'user', 'class="pictofixedwidth"').$form->textwithpicto($s, $langs->trans("AnyOtherInThisListCanValidate"));
+			}
 		}
 
 		//print $form->select_dolusers((GETPOST('valideur','int')>0?GETPOST('valideur','int'):$user->fk_user), "valideur", 1, ($user->admin ? '' : array($user->id)), 0, '', 0, 0, 0, 0, '', 0, '', '', 1);	// By default, hierarchical parent
@@ -1486,7 +1506,7 @@ if ((empty($id) && empty($ref)) || $action == 'create' || $action == 'add') {
 						print $approverexpected->getNomUrl(-1);
 					}
 					$include_users = $object->fetch_users_approver_holiday();
-					if (is_array($include_users) && in_array($user->id, $include_users) && $object->status == Holiday::STATUS_VALIDATED) {
+					if (getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 0 && is_array($include_users) && in_array($user->id, $include_users) && $object->status == Holiday::STATUS_VALIDATED) {
 						print '<a class="editfielda paddingleft" href="'.$_SERVER["PHP_SELF"].'?id='.$object->id.'&action=editvalidator">'.img_edit($langs->trans("Edit")).'</a>';
 					}
 					print '</td>';
@@ -1495,20 +1515,26 @@ if ((empty($id) && empty($ref)) || $action == 'create' || $action == 'add') {
 					print '<tr>';
 					print '<td class="titlefield">'.$langs->trans('ReviewedByCP').'</td>';	// Will be approved by
 					print '<td>';
-					$include_users = $object->fetch_users_approver_holiday();
-					if (!in_array($object->fk_validator, $include_users)) {  // Add the current validator to the list to not lose it when editing.
-						$include_users[] = $object->fk_validator;
-					}
-					if (empty($include_users)) {
-						print img_warning().' '.$langs->trans("NobodyHasPermissionToValidateHolidays");
+					if (getDolGlobalInt('HOLIDAY_APPROVER_CANT_CHANGE') == 1 && $object->fk_validator > 0) {
+						$approverdone = new User($db);
+						$approverdone->fetch($object->fk_validator);
+						print $approverdone->getNomUrl(-1);
 					} else {
-						$arrayofvalidatorstoexclude = (($user->admin || ($user->id != $userRequest->id)) ? '' : array($user->id)); // We exclude ourself from validator list. Not if we are admin or if we are on the leave of someone else
-						$s = $form->select_dolusers($object->fk_validator, "valideur", (($action == 'editvalidator') ? 0 : 1), $arrayofvalidatorstoexclude, 0, $include_users);
-						print $form->textwithpicto($s, $langs->trans("AnyOtherInThisListCanValidate"));
-					}
-					if ($action == 'editvalidator') {
-						print '<input type="submit" class="button button-save" name="savevalidator" value="'.$langs->trans("Save").'">';
-						print '<input type="submit" class="button button-cancel" name="cancel" value="'.$langs->trans("Cancel").'">';
+						$include_users = $object->fetch_users_approver_holiday();
+						if (!in_array($object->fk_validator, $include_users)) {  // Add the current validator to the list to not lose it when editing.
+							$include_users[] = $object->fk_validator;
+						}
+						if (empty($include_users)) {
+							print img_warning().' '.$langs->trans("NobodyHasPermissionToValidateHolidays");
+						} else {
+							$arrayofvalidatorstoexclude = (($user->admin || ($user->id != $userRequest->id)) ? '' : array($user->id)); // We exclude ourself from validator list. Not if we are admin or if we are on the leave of someone else
+							$s = $form->select_dolusers($object->fk_validator, "valideur", (($action == 'editvalidator') ? 0 : 1), $arrayofvalidatorstoexclude, 0, $include_users);
+							print $form->textwithpicto($s, $langs->trans("AnyOtherInThisListCanValidate"));
+						}
+						if ($action == 'editvalidator') {
+							print '<input type="submit" class="button button-save" name="savevalidator" value="'.$langs->trans("Save").'">';
+							print '<input type="submit" class="button button-cancel" name="cancel" value="'.$langs->trans("Cancel").'">';
+						}
 					}
 					print '</td>';
 					print '</tr>';
